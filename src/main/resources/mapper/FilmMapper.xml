@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.watcher.springboot.mapper.FilmMapper">
+
+    <resultMap id="filmMap" type="com.watcher.springboot.entity.Film">
+        <id property="id" column="fid"></id>
+        <result property="name" column="filmName"></result>
+        <result property="score" column="score"></result>
+        <result property="count" column="count"></result>
+        <result property="needVip" column="need_vip"></result>
+        <collection property="actors" column="actors" ofType="com.watcher.springboot.entity.Actor">
+            <result property="name" column="actorName"></result>
+        </collection>
+        <collection property="categories" column="categories" ofType="com.watcher.springboot.entity.Category">
+            <result property="name" column="categoryName"></result>
+        </collection>
+    </resultMap>
+
+    <select id="findSearch" resultMap="filmMap">
+        select DISTINCT f.id AS fid,f.name AS filmName,f.score,f.count,f.need_vip,null AS actorName,null AS categoryName from
+        film f,filmActor fa,actor a
+        <where>
+            <if test="search != null and search != ''">
+                f.name LIKE CONCAT('%',#{search},'%') OR
+                (f.id=fa.filmId AND fa.actorId=a.id AND a.name LIKE CONCAT('%',#{search},'%'))
+            </if>
+        </where>
+        order by ${order} DESC
+    </select>
+    <select id="connect" resultMap="filmMap">
+        select f.id AS fid,f.name AS filmName,f.score,f.count,f.need_vip,a.name AS actorName,c.name AS categoryName from
+        film f
+        left join filmActor fa on f.id=fa.filmId
+        left join actor a on a.id=fa.actorId
+        left join filmCategory fc on f.id=fc.filmId
+        left join category c on fc.categoryId=c.id
+        where f.id=#{id}
+    </select>
+    <update id="updateCountByName">
+        UPDATE film SET count=count+1 WHERE name=#{name}
+    </update>
+    <select id="findCategory" resultMap="filmMap">
+        SELECT DISTINCT fid, filmName, score, count, need_vip, NULL AS actorName, NULL AS categoryName
+        FROM (
+        select DISTINCT f.id AS fid,f.name AS filmName,f.score,f.count,f.need_vip,null AS actorName,null AS categoryName from
+        film f,filmActor fa,actor a
+        <where>
+            <if test="search != null and search != ''">
+                f.name LIKE CONCAT('%',#{search},'%') OR
+                (f.id=fa.filmId AND fa.actorId=a.id AND a.name LIKE CONCAT('%',#{search},'%'))
+            </if>
+        </where>
+             ) AS film_actor_table
+                 INNER JOIN filmCategory fc ON film_actor_table.fid = fc.filmId
+                 INNER JOIN category c ON fc.categoryId = c.id
+        WHERE c.name = #{category}
+        order by score DESC
+    </select>
+    <select id="findByName" resultType="Integer">
+        select need_vip from film where name=#{name}
+    </select>
+</mapper>
+
